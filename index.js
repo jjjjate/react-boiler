@@ -5,8 +5,10 @@ const port = 5000;
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const { User } = require("./models/User");
+const { auth } = require("./middleware/auth");
 
 const config = require("./config/key");
+
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -23,7 +25,7 @@ mongoose
 app.get("/", (req, res) => res.send());
 
 //회원가입을 위함
-app.post("/api/user/register", (req, res) => {
+app.post("/api/users/register", (req, res) => {
   //회원가입할 때 필요한 정보를 client에서 가져온다
   //정보를 데이터베이스에 넣는다
   const user = new User(req.body);
@@ -35,7 +37,7 @@ app.post("/api/user/register", (req, res) => {
   });
 });
 
-app.post("/api/user/login", (req, res) => {
+app.post("/api/users/login", (req, res) => {
   User.findOne({ email: req.body.email }, (err, user) => {
     if(!user) {
       return res.json({
@@ -52,6 +54,28 @@ app.post("/api/user/login", (req, res) => {
           .status(200)
           .json({ loginSuccess: true, userId: user._id })
       })
+    })
+  })
+})
+
+app.get("/api/users/auth", auth, (req, res) => {
+  res.status(200).json({
+    _id: req.user._id,
+    isAdmin: req.user.role === 0 ? false : true,
+    isAuth: true,
+    email: req.user.email,
+    name: req.user.name,
+    lastname: req.user.lastname,
+    role: req.user.role,
+    image: req.user.image,
+  });
+});
+
+app.get("/api/users/logout", auth, (req, res) => {
+  User.findOneAndUpdate({ _id: req.user._id }, { token: "" }, (err, user) => {
+    if(err) return res.json({ success: false, err });
+    return res.status(200).send({
+      success: true
     })
   })
 })
